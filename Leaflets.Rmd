@@ -1,0 +1,47 @@
+---
+title: "Swiss Mountains and Peaks"
+author: "Bart Lemmens"
+date: "Oct 10, 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, cache = TRUE)
+```
+
+
+```{r}
+## download Swiss features from http://download.geonames.org/export/dump/CH.zip
+temp <- tempfile()
+download.file("http://download.geonames.org/export/dump/CH.zip",temp)
+data <- read.delim(unz(temp, "CH.txt"), header=FALSE, as.is = TRUE)
+unlink(temp)
+colnames(data) <- c("geonameid", "name", "asciiname", "alternatenames", "latitude", "longitude", "feature_class", "feature_code", "country_code", "cc2", "admin1_code", "admin2_code",  "admin3_code", "admin4_code", "population", "elevation", "dem", "timezone", "mod_date")
+```
+
+```{r}
+library(dplyr)
+mountains <- data %>%
+    filter(feature_class == 'T',
+           feature_code %in% list("MT","MTS","PK","PKS"),
+           longitude > 0,
+           !is.na(elevation)) %>%
+    select(name, latitude, longitude, feature_code, admin1_code, elevation)
+```
+
+```{r, message=FALSE}
+library(leaflet)
+popuptext <- with(mountains, paste0(name, ' (', admin1_code, ') ', elevation, 'm'))
+icon <- makeIcon(iconUrl = "https://upload.wikimedia.org/wikipedia/commons/5/5a/Mountain_Icon.svg",
+                 iconWidth = 30, iconHeight = 30,
+                 iconAnchorX = 15, iconAnchorY = 15)
+mountains %>% leaflet() %>%
+    addTiles() %>%
+    addMarkers(popup = popuptext,
+               clusterOptions = markerClusterOptions(),
+               icon = icon)
+```
+
+### References
+- data borrowed from http://download.geonames.org/export/dump/CH.zip
+- Icon borrowed from https://upload.wikimedia.org/wikipedia/commons/5/5a/Mountain_Icon.svg
